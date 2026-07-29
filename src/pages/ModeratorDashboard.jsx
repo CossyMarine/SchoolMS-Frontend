@@ -3,100 +3,44 @@ import { useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import DashboardShell from "../components/DashboardShell";
 import StudentsTable from "../components/admin/StudentsTable";
+import FeesTab from "../components/admin/FeesTab";
+import MessagesTab from "../components/admin/MessagesTab";
+import AttendanceEntry from "../components/teacher/AttendanceEntry";
+import OutstandingBooks from "../components/library/OutstandingBooks";
+import BookCatalog from "../components/library/BookCatalog";
 
-const ALL_NAV_ITEMS = [
-  { key: "overview", label: "Overview", icon: "fa-chart-pie", permission: null },
-  { key: "students", label: "Students", icon: "fa-user-graduate", permission: "admissions" },
-  { key: "fees", label: "Fees & Arrears", icon: "fa-wallet", permission: "fees" },
-  { key: "attendance", label: "Attendance", icon: "fa-clipboard-check", permission: "attendance" },
-  { key: "results", label: "Exam Results", icon: "fa-square-poll-vertical", permission: "results" },
-  { key: "library", label: "Library", icon: "fa-book-bookmark", permission: "library" },
-  { key: "messages", label: "Messages", icon: "fa-paper-plane", permission: "messaging" },
+// Maps a permission key to the nav item + component shown when it's granted
+const MODULE_MAP = [
+  { key: "admissions", label: "Admissions", icon: "fa-user-graduate", component: <StudentsTable /> },
+  { key: "fees", label: "Fees", icon: "fa-wallet", component: <FeesTab /> },
+  { key: "messaging", label: "Messages", icon: "fa-paper-plane", component: <MessagesTab /> },
+  { key: "attendance", label: "Attendance", icon: "fa-user-check", component: <AttendanceEntry classTeacherOf={null} /> },
+  { key: "library", label: "Library", icon: "fa-book-bookmark", component: <BookCatalog /> },
 ];
 
 export default function ModeratorDashboard() {
   const { user, logout } = useAuth();
+  const granted = MODULE_MAP.filter((m) => user?.permissions?.[m.key]);
+  const [tab, setTab] = useState(granted[0]?.key || null);
 
-  const allowedItems = ALL_NAV_ITEMS.filter(
-    (item) => item.permission === null || user?.permissions?.[item.permission]
-  );
-
-  const [tab, setTab] = useState(allowedItems[0]?.key ?? "overview");
+  const navItems = granted.map((m) => ({ key: m.key, label: m.label, icon: m.icon }));
+  const active = granted.find((m) => m.key === tab);
 
   return (
     <DashboardShell
-      brandLabel="Moderator Portal"
-      navItems={allowedItems}
+      brandLabel={user?.moderatorTitle || "Moderator Portal"}
+      navItems={navItems}
       activeTab={tab}
       onTabChange={setTab}
       userName={user?.fullName}
       userSubtitle={user?.moderatorTitle || "Moderator"}
       onLogout={logout}
     >
-      {tab === "overview" && <OverviewTab user={user} />}
-      {tab === "students" && user?.permissions?.admissions && <StudentsTable />}
-      {tab === "fees" && user?.permissions?.fees && (
-        <PlaceholderTab label="Fees & Arrears" />
-      )}
-      {tab === "attendance" && user?.permissions?.attendance && (
-        <PlaceholderTab label="Attendance" />
-      )}
-      {tab === "results" && user?.permissions?.results && (
-        <PlaceholderTab label="Exam Results" />
-      )}
-      {tab === "library" && user?.permissions?.library && (
-        <PlaceholderTab label="Library" />
-      )}
-      {tab === "messages" && user?.permissions?.messaging && (
-        <PlaceholderTab label="Messages" />
+      {granted.length === 0 ? (
+        <p className="text-sm text-gray-400">No modules have been enabled for your account yet — contact your administrator.</p>
+      ) : (
+        active?.component
       )}
     </DashboardShell>
-  );
-}
-
-function OverviewTab({ user }) {
-  const grantedModules = Object.entries(user?.permissions || {}).filter(([, v]) => v);
-
-  return (
-    <div className="space-y-8">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">Moderator Dashboard</h2>
-        <p className="text-sm text-gray-500">
-          {user?.moderatorTitle ? `${user.moderatorTitle} — ` : ""}
-          Scoped access based on your assigned permissions.
-        </p>
-      </div>
-
-      {grantedModules.length === 0 ? (
-        <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm text-sm text-gray-500">
-          No modules have been enabled for your account yet. Contact an administrator.
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {grantedModules.map(([key]) => (
-            <div
-              key={key}
-              className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between"
-            >
-              <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Module Access
-                </p>
-                <h3 className="text-lg font-bold text-gray-900 mt-1 capitalize">{key}</h3>
-              </div>
-              <div className="w-12 h-12 bg-brand-orange-light text-brand-orange rounded-xl flex items-center justify-center text-xl">
-                <i className="fa-solid fa-circle-check"></i>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function PlaceholderTab({ label }) {
-  return (
-    <div className="text-sm text-gray-500">{label} module UI — next build step.</div>
   );
 }
