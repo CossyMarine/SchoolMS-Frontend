@@ -33,7 +33,16 @@ export default function StudentFormModal({ student, classes, schoolConfig, onClo
   const [dorms, setDorms] = useState([]);
   const [saving, setSaving] = useState(false);
 
+  // ---- Class / stream change (edit mode only) ----
+  const [classChangeOpen, setClassChangeOpen] = useState(false);
+  const [ccClassId, setCcClassId] = useState("");
+  const [ccStream, setCcStream] = useState("");
+  const [ccAction, setCcAction] = useState("promoted");
+  const [ccAcademicYear, setCcAcademicYear] = useState(currentYear);
+  const [ccSaving, setCcSaving] = useState(false);
+
   const selectedClass = useMemo(() => classes.find((c) => c._id === classId), [classes, classId]);
+  const ccSelectedClass = useMemo(() => classes.find((c) => c._id === ccClassId), [classes, ccClassId]);
 
   useEffect(() => {
     if (dormMode !== "none") {
@@ -114,6 +123,39 @@ export default function StudentFormModal({ student, classes, schoolConfig, onClo
       toast.error(err.response?.data?.message || "Failed to save student");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleClassChange = async (e) => {
+    e.preventDefault();
+    if (!ccClassId) {
+      toast.error("Select a class");
+      return;
+    }
+    if (ccSelectedClass?.streams?.length > 0 && !ccStream) {
+      toast.error(`${ccSelectedClass.name} has streams — please select one`);
+      return;
+    }
+    if (!ccAcademicYear) {
+      toast.error("Academic year is required");
+      return;
+    }
+
+    setCcSaving(true);
+    try {
+      await API.post(`/students/${student._id}/class-change`, {
+        newClassId: ccClassId,
+        newStream: ccStream || undefined,
+        academicYear: ccAcademicYear,
+        action: ccAction,
+      });
+      toast.success(`Student ${ccAction}`);
+      onSaved();
+      onClose();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to change class");
+    } finally {
+      setCcSaving(false);
     }
   };
 
@@ -219,10 +261,79 @@ export default function StudentFormModal({ student, classes, schoolConfig, onClo
               )}
             </div>
           )}
+
           {isEdit && (
-            <p className="text-[11px] text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-              Class: <span className="font-semibold">{student.class?.name} {student.stream ? `(${student.stream})` : ""}</span> — use "Promote / Transfer" to change class.
-            </p>
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] text-gray-500">
+                  Class: <span className="font-semibold text-gray-800">{student.class?.name} {student.stream ? `(${student.stream})` : ""}</span>
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setClassChangeOpen((v) => !v)}
+                  className="text-[11px] font-semibold text-brand-orange hover:text-brand-orange-hover"
+                >
+                  {classChangeOpen ? "Cancel" : "Promote / Transfer"}
+                </button>
+              </div>
+
+              {classChangeOpen && (
+                <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-600 uppercase mb-1">New Class</label>
+                      <select value={ccClassId} onChange={(e) => { setCcClassId(e.target.value); setCcStream(""); }} className="w-full px-2.5 py-1.5 bg-white border border-gray-300 rounded-lg text-xs focus:outline-none focus:border-brand-orange">
+                        <option value="">Select class…</option>
+                        {classes.map((c) => (
+                          <option key={c._id} value={c._id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {ccSelectedClass?.streams?.length > 0 && (
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-600 uppercase mb-1">New Stream</label>
+                        <select value={ccStream} onChange={(e) => setCcStream(e.target.value)} className="w-full px-2.5 py-1.5 bg-white border border-gray-300 rounded-lg text-xs focus:outline-none focus:border-brand-orange">
+                          <option value="">Select stream…</option>
+                          {ccSelectedClass.streams.map((s) => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-600 uppercase mb-1">Reason</label>
+                      <select value={ccAction} onChange={(e) => setCcAction(e.target.value)} className="w-full px-2.5 py-1.5 bg-white border border-gray-300 rounded-lg text-xs focus:outline-none focus:border-brand-orange">
+                        <option value="promoted">Promoted</option>
+                        <option value="repeated">Repeated</option>
+                        <option value="transferred">Transferred</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-600 uppercase mb-1">Academic Year</label>
+                      <select value={ccAcademicYear} onChange={(e) => setCcAcademicYear(e.target.value)} className="w-full px-2.5 py-1.5 bg-white border border-gray-300 rounded-lg text-xs focus:outline-none focus:border-brand-orange">
+                        {academicYears.length === 0 && <option value="">No academic years configured</option>}
+                        {academicYears.map((y) => (
+                          <option key={y._id} value={y.year}>{y.year}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleClassChange}
+                    disabled={ccSaving}
+                    className="w-full bg-black hover:bg-gray-800 text-white text-xs font-bold py-2 rounded-lg transition disabled:opacity-60"
+                  >
+                    {ccSaving ? "Saving…" : "Confirm Class Change"}
+                  </button>
+                  <p className="text-[10px] text-gray-400">This saves immediately and is recorded in the student's class history.</p>
+                </div>
+              )}
+            </div>
           )}
 
           {dormMode !== "none" && (
@@ -295,4 +406,4 @@ export default function StudentFormModal({ student, classes, schoolConfig, onClo
       </div>
     </div>
   );
-                      }
+                }
