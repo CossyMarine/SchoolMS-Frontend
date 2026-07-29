@@ -5,7 +5,7 @@ import DashboardShell from "../components/DashboardShell";
 import StudentsTable from "../components/admin/StudentsTable";
 import FeesTab from "../components/admin/FeesTab";
 import MessagesTab from "../components/admin/MessagesTab";
-import AttendanceEntry from "../components/teacher/AttendanceEntry";
+import ModeratorAttendanceEntry from "../components/moderator/ModeratorAttendanceEntry";
 import OutstandingBooks from "../components/library/OutstandingBooks";
 import BookCatalog from "../components/library/BookCatalog";
 
@@ -14,7 +14,7 @@ const MODULE_MAP = [
   { key: "admissions", label: "Admissions", icon: "fa-user-graduate", component: <StudentsTable /> },
   { key: "fees", label: "Fees", icon: "fa-wallet", component: <FeesTab /> },
   { key: "messaging", label: "Messages", icon: "fa-paper-plane", component: <MessagesTab /> },
-  { key: "attendance", label: "Attendance", icon: "fa-user-check", component: <AttendanceEntry classTeacherOf={null} /> },
+  { key: "attendance", label: "Attendance", icon: "fa-user-check", component: <ModeratorAttendanceEntry /> },
   { key: "library", label: "Library", icon: "fa-book-bookmark", component: <BookCatalog /> },
 ];
 
