@@ -5,24 +5,13 @@ import API from "../../api/axios";
 
 export default function FeesOverviewChart() {
   const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function load() {
-      try {
-        const classesRes = await API.get("/classes");
-        const rows = await Promise.all(
-          classesRes.data.classes.map(async (c) => {
-            // Placeholder aggregate per class — swap for a dedicated /api/fees/summary-by-class
-            // endpoint once you want this chart backed by real aggregation instead of N calls.
-            return { name: c.name, collected: 0, arrears: 0 };
-          })
-        );
-        setData(rows);
-      } catch {
-        setData([]);
-      }
-    }
-    load();
+    API.get("/fees/summary-by-class")
+      .then((res) => setData(res.data.summary))
+      .catch(() => setData([]))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -34,17 +23,23 @@ export default function FeesOverviewChart() {
         </div>
       </div>
       <div className="h-64 w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-            <YAxis tick={{ fontSize: 12 }} />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="collected" name="Fees Collected (KES)" fill="#FF5722" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="arrears" name="Outstanding Arrears (KES)" fill="#FFCCBC" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+        {loading ? (
+          <p className="text-sm text-gray-400 flex items-center justify-center h-full">Loading…</p>
+        ) : data.length === 0 ? (
+          <p className="text-sm text-gray-400 flex items-center justify-center h-full">No invoices generated yet</p>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} />
+              <Tooltip formatter={(value) => `KES ${value.toLocaleString()}`} />
+              <Legend />
+              <Bar dataKey="collected" name="Fees Collected (KES)" fill="#FF5722" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="arrears" name="Outstanding Arrears (KES)" fill="#FFCCBC" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </div>
     </div>
   );
