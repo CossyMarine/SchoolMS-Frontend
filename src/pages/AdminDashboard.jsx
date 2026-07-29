@@ -5,6 +5,12 @@ import API from "../api/axios";
 import DashboardShell from "../components/DashboardShell";
 import StudentsTable from "../components/admin/StudentsTable";
 import FeesOverviewChart from "../components/admin/FeesOverviewChart";
+import FeesTab from "../components/admin/FeesTab";
+import StaffTab from "../components/admin/StaffTab";
+import ClassesTab from "../components/admin/ClassesTab";
+import MessagesTab from "../components/admin/MessagesTab";
+import BookCatalog from "../components/library/BookCatalog";
+import OutstandingBooks from "../components/library/OutstandingBooks";
 
 const NAV_ITEMS = [
   { key: "overview", label: "Overview", icon: "fa-chart-pie" },
@@ -54,12 +60,12 @@ export default function AdminDashboard() {
     >
       {tab === "overview" && <OverviewTab stats={stats} />}
       {tab === "students" && <StudentsTable />}
-      {tab === "fees" && <div className="text-sm text-gray-500">Fees module UI — next build step.</div>}
-      {tab === "staff" && <div className="text-sm text-gray-500">Staff & Roles UI — next build step.</div>}
-      {tab === "classes" && <div className="text-sm text-gray-500">Class management UI — next build step.</div>}
-      {tab === "messages" && <div className="text-sm text-gray-500">Messaging center UI — next build step.</div>}
-      {tab === "results" && <div className="text-sm text-gray-500">Results/exam UI — next build step.</div>}
-      {tab === "library" && <div className="text-sm text-gray-500">Library UI — next build step.</div>}
+      {tab === "fees" && <FeesTab />}
+      {tab === "staff" && <StaffTab />}
+      {tab === "classes" && <ClassesTab />}
+      {tab === "messages" && <MessagesTab />}
+      {tab === "results" && <ResultsTabPlaceholder />}
+      {tab === "library" && <LibraryTab />}
     </DashboardShell>
   );
 }
@@ -93,6 +99,32 @@ function StatCard({ label, value, icon }) {
       <div className="w-12 h-12 bg-brand-orange-light text-brand-orange rounded-xl flex items-center justify-center text-xl">
         <i className={`fa-solid ${icon}`}></i>
       </div>
+    </div>
+  );
+}
+
+// The library components were built for the Librarian dashboard; an admin
+// reasonably needs the same catalog + outstanding-books views, so they're
+// reused directly rather than duplicated.
+function LibraryTab() {
+  return (
+    <div className="space-y-6">
+      <BookCatalog />
+      <OutstandingBooks />
+    </div>
+  );
+}
+
+// Honest placeholder: unlike Library, there is no admin exam-management
+// component yet (create exam, set components/weights, approve results across
+// classes). ResultEntry and the approve-exam endpoint exist on the backend,
+// but the admin-facing UI for them hasn't been built — this is next, not done.
+function ResultsTabPlaceholder() {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 text-sm text-gray-500">
+      Exam creation and results-approval UI isn't built yet — the backend endpoints
+      (<code className="text-xs bg-gray-100 px-1 rounded">POST /api/exams</code>,{" "}
+      <code className="text-xs bg-gray-100 px-1 rounded">POST /api/exams/:id/approve</code>) are ready and waiting.
     </div>
   );
 }
