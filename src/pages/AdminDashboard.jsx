@@ -11,12 +11,14 @@ import ClassesTab from "../components/admin/ClassesTab";
 import MessagesTab from "../components/admin/MessagesTab";
 import BookCatalog from "../components/library/BookCatalog";
 import OutstandingBooks from "../components/library/OutstandingBooks";
+import SubjectsTab from "../components/admin/SubjectsTab";
 
 const NAV_ITEMS = [
   { key: "overview", label: "Overview", icon: "fa-chart-pie" },
   { key: "students", label: "Students", icon: "fa-user-graduate" },
   { key: "staff", label: "Staff & Roles", icon: "fa-user-shield" },
   { key: "classes", label: "Classes", icon: "fa-school" },
+  { key: "subjects", label: "Subjects", icon: "fa-book-open" },
   { key: "fees", label: "Fees & Arrears", icon: "fa-wallet" },
   { key: "messages", label: "Messages", icon: "fa-paper-plane" },
   { key: "results", label: "Exam Results", icon: "fa-square-poll-vertical" },
@@ -63,6 +65,7 @@ export default function AdminDashboard() {
       {tab === "fees" && <FeesTab />}
       {tab === "staff" && <StaffTab />}
       {tab === "classes" && <ClassesTab />}
+      {tab === "subjects" && <SubjectsTab />}
       {tab === "messages" && <MessagesTab />}
       {tab === "results" && <ResultsTabPlaceholder />}
       {tab === "library" && <LibraryTab />}
