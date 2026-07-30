@@ -3,31 +3,36 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import { routeForUser } from "./utils/routeForUser";
-
-import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
+import Admin from "./pages/Admin";
+import CashierPage from "./pages/CashierPage";
+import StorekeeperPage from "./pages/StorekeeperPage";
+import CustomerPage from "./pages/CustomerPage";
+import PublicDisplayPage from "./pages/PublicDisplayPage";
+import OrdersPage from "./pages/OrdersPage";
+import WalletPage from "./pages/WalletPage";
+import ProfilePage from "./pages/ProfilePage";
+import ProfileDetailsPage from "./pages/ProfileDetailsPage";
 import ForgotPassword from "./pages/ForgotPassword";
 import VerifyResetCode from "./pages/VerifyResetCode";
 import ResetPassword from "./pages/ResetPassword";
 
-import AdminDashboard from "./pages/AdminDashboard";
-import ModeratorDashboard from "./pages/ModeratorDashboard";
-import TeacherDashboard from "./pages/TeacherDashboard";
-import LibrarianDashboard from "./pages/LibrarianDashboard";
-import StudentParentPortal from "./pages/StudentParentPortal";
-
 function LoadingScreen() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-500 text-sm">
+    <div className="min-h-screen flex items-center justify-center bg-gray-950 text-gray-400 text-sm">
       Loading…
     </div>
   );
 }
 
-function ProtectedRoute({ user, loading, allow, children }) {
+// allow: "admin" | "branchManager" | "cashier" | "storekeeper"
+// "admin" also lets a branchManager through when allowManagerToo is set,
+// so /manager and /admin can share the same guard shape without duplicating it.
+function StaffRoute({ user, loading, allow, children }) {
   if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
-  if (!allow.includes(user.role)) return <Navigate to={routeForUser(user)} replace />;
+  const ok = allow === "admin" ? user.isAdmin : user.role === allow;
+  if (!ok) return <Navigate to={routeForUser(user)} replace />;
   return children;
 }
 
@@ -37,10 +42,20 @@ function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<LandingPage />} />
+        <Route path="/" element={<Navigate to="/home" replace />} />
+
+        <Route path="/home" element={<CustomerPage />} />
+        <Route path="/orders" element={<OrdersPage />} />
+        <Route path="/wallet" element={<WalletPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/profile/details" element={<ProfileDetailsPage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/verify-reset-code" element={<VerifyResetCode />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+
+        {/* Public Customer Display — no login, meant for a register's second
+            monitor. branchId/registerId identify which socket room to join. */}
+        <Route path="/display/:branchId/:registerId" element={<PublicDisplayPage />} />
 
         <Route
           path="/login"
@@ -58,46 +73,43 @@ function AppRoutes() {
         <Route
           path="/admin"
           element={
-            <ProtectedRoute user={user} loading={loading} allow={["admin"]}>
-              <AdminDashboard />
-            </ProtectedRoute>
+            <StaffRoute user={user} loading={loading} allow="admin">
+              <Admin />
+            </StaffRoute>
+          }
+        />
+        {/* Branch Manager gets the same Admin screen, scoped internally to
+            their own branch — see the isAdmin check inside Admin.jsx */}
+        <Route
+          path="/manager"
+          element={
+            <StaffRoute user={user} loading={loading} allow="branchManager">
+              <Admin />
+            </StaffRoute>
           }
         />
         <Route
-          path="/moderator"
+          path="/cashier"
           element={
-            <ProtectedRoute user={user} loading={loading} allow={["moderator"]}>
-              <ModeratorDashboard />
-            </ProtectedRoute>
+            <StaffRoute user={user} loading={loading} allow="cashier">
+              <CashierPage />
+            </StaffRoute>
           }
         />
         <Route
-          path="/teacher"
+          path="/storekeeper"
           element={
-            <ProtectedRoute user={user} loading={loading} allow={["teacher"]}>
-              <TeacherDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/librarian"
-          element={
-            <ProtectedRoute user={user} loading={loading} allow={["librarian"]}>
-              <LibrarianDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/portal"
-          element={
-            <ProtectedRoute user={user} loading={loading} allow={["student", "parent"]}>
-              <StudentParentPortal />
-            </ProtectedRoute>
+            <StaffRoute user={user} loading={loading} allow="storekeeper">
+              <StorekeeperPage />
+            </StaffRoute>
           }
         />
 
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/dashboard" element={<Navigate to="/admin" replace />} />
+
+        <Route path="*" element={<Navigate to="/home" replace />} />
       </Routes>
+
       <ToastContainer position="top-right" theme="light" autoClose={3000} />
     </BrowserRouter>
   );
@@ -109,4 +121,4 @@ export default function App() {
       <AppRoutes />
     </AuthProvider>
   );
-}
+        }
