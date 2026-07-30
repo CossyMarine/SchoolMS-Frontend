@@ -12,6 +12,7 @@ export default function ClassesTab() {
   const [classes, setClasses] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [students, setStudents] = useState([]);
+  const [performance, setPerformance] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState("");
@@ -26,14 +27,16 @@ export default function ClassesTab() {
   const load = async () => {
     setLoading(true);
     try {
-      const [classesRes, teachersRes, studentsRes] = await Promise.all([
+      const [classesRes, teachersRes, studentsRes, perfRes] = await Promise.all([
         API.get("/classes"),
         API.get("/teachers"),
         API.get("/students", { params: { status: "active" } }),
+        API.get("/exams/performance/summary"),
       ]);
       setClasses(classesRes.data.classes);
       setTeachers(teachersRes.data.teachers);
       setStudents(studentsRes.data.students);
+      setPerformance(perfRes.data.summary);
     } catch {
       toast.error("Failed to load classes");
     } finally {
@@ -48,6 +51,8 @@ export default function ClassesTab() {
 
   const countFor = (classId, stream) =>
     students.filter((s) => (s.class?._id || s.class) === classId && (s.stream || "") === (stream || "")).length;
+
+  const performanceFor = (classId) => performance.find((p) => p.classId === classId);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -131,6 +136,7 @@ export default function ClassesTab() {
               classDoc={c}
               teacherFor={teacherFor}
               countFor={countFor}
+              performance={performanceFor(c._id)}
               onEdit={() => setFormModal(c)}
               onDelete={() => handleDelete(c._id)}
               onManageTeachers={() => setTeachersModalClass(c)}
@@ -175,7 +181,7 @@ function StatCard({ label, value, icon, accent, danger }) {
   );
 }
 
-function ClassCard({ classDoc: c, teacherFor, countFor, onEdit, onDelete, onManageTeachers, onRebalance, onRoster }) {
+function ClassCard({ classDoc: c, teacherFor, countFor, performance, onEdit, onDelete, onManageTeachers, onRebalance, onRoster }) {
   const streamList = c.streams.length ? c.streams : [{ name: "", capacity: c.capacity }];
   const totalEnrolled = streamList.reduce((sum, s) => sum + countFor(c._id, s.name), 0);
   const totalCapacity = streamList.reduce((sum, s) => sum + (s.capacity || 0), 0);
@@ -229,6 +235,19 @@ function ClassCard({ classDoc: c, teacherFor, countFor, onEdit, onDelete, onMana
         )}
       </div>
 
+      {performance ? (
+        <div className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg text-xs">
+          <span className="text-gray-500">
+            Avg. score{performance.lastExamName ? ` (${performance.lastExamName})` : ""}
+          </span>
+          <span className={`font-bold ${performance.averagePercentage >= 50 ? "text-green-600" : "text-red-600"}`}>
+            {performance.averagePercentage}%
+          </span>
+        </div>
+      ) : (
+        <p className="text-[11px] text-gray-400 italic">No approved results yet</p>
+      )}
+
       <div className="pt-3 border-t border-gray-100 grid grid-cols-3 gap-2 text-[10px] font-bold">
         <button onClick={onManageTeachers} className="py-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-700"><i className="fa-solid fa-chalkboard-user mr-1"></i>Teachers</button>
         <button onClick={onRebalance} className="py-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-700"><i className="fa-solid fa-shuffle mr-1"></i>Rebalance</button>
@@ -236,4 +255,4 @@ function ClassCard({ classDoc: c, teacherFor, countFor, onEdit, onDelete, onMana
       </div>
     </div>
   );
-}
+      }
